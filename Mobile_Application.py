@@ -1,82 +1,59 @@
-from kivy.app import App
-from kivy.graphics import Color, Rectangle
-from kivy.uix.button import Button
-from kivy.uix.widget import Widget
-from kivy.core.window import Window
-from kivy.uix.floatlayout import FloatLayout
+import pygame
+import sys
 
+from pygame import draw, KEYDOWN, K_w, K_s, K_SPACE
 
-class MyWidget(Widget):
-    pass
+pygame.init()
 
+bg = pygame.image.load("фон.jpg")
+screen  = pygame.display.set_mode((1200, 800), pygame.RESIZABLE)
+pygame.display.set_caption("Mathematical Simulator")
+img = pygame.image.load("логотип.jpg")
+pygame.display.set_icon(img)
+font = pygame.font.SysFont("Codec Pro Ultra", 60)
+white = (255, 255, 255)
 
-class MyApp(App):
-    def build(self):
-        self.title = 'Математический тренажёр'
-        self.icon = 'логотип.jpg'
-        Window.size = (1000, 600)
+class Menu:
+    def __init__(self):
+        self._option_surfaces = []
+        self._callbacks = []
+        self._current_option_index = 0
 
-        layout = FloatLayout()
-        widget = MyWidget()
-        self.button_play = Button(text="Play", font_size="30", font_name="CodecPro-ExtraBold.ttf", size_hint=(None, None),
-                             width=350, height=150,
-                             pos_hint={'center_x': .5, 'center_y': .5})
+    def append_option(self, option, callback):
+        self._option_surfaces.append(font.render(option, True, (white)))
+        self._callbacks.append(callback)
 
-        self.button_quit = Button(text="Quit", font_size="30", font_name="CodecPro-ExtraBold.ttf",
-                             size_hint=(None, None), width=200, height=100,
-                             pos_hint={'center_x': 0.5, 'center_y': 0.3})
+    def switch(self, direction):
+        self._current_option_index = max(0, min(self._current_option_index + direction, len(self._option_surfaces) - 1))
 
-        self.button_play.bind(on_press=self.show_difficulty_menu)
-        self.button_quit.bind(on_press=self.quit_app)
+    def select(self):
+        self._callbacks[self._current_option_index]()
 
-        layout.add_widget(widget)
-        layout.add_widget(self.button_play)
-        layout.add_widget(self.button_quit)
+    def draw(self, surf, x, y, option_y_padding):
+        for i, option in enumerate(self._option_surfaces):
+            option_rect = option.get_rect()
+            option_rect.topleft = (500, 450 + i * 110)
+            if i == self._current_option_index:
+                draw.rect(surf, (0, 206, 209), option_rect)
+            surf.blit(option, option_rect)
 
-        with widget.canvas.before:
-            Color(1, 1, 1, 1)
-            Rectangle(pos=widget.pos, size=widget.size)
-        widget.bind(pos=self.update_rect, size=self.update_rect)
-        return layout
+menu = Menu()
+menu.append_option("PLAY", lambda: print("PLAY"))
+menu.append_option("QUIT", quit)
 
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            return super().on_touch_down(touch)
-
-
-    def update_rect(self, widget, *args):
-        widget.canvas.before.clear()
-        with widget.canvas.before:
-            Color(1, 1, 1, 1)
-            Rectangle(pos=widget.pos, size=widget.size)
-
-    def quit_app(self, instance):
-        App.get_running_app().stop()
-
-    def show_difficulty_menu(self, instance):
-        # Создаём новый Layout
-        layout = FloatLayout()
-        # Добавляем кнопку для лёгкого уровня
-        button_easy = Button(text="Easy", font_size="30", font_name="CodecPro-ExtraBold.ttf",
-                             size_hint=(None, None), width=300, height=100,
-                             pos_hint={'center_x': .5, 'center_y': .7})
-        layout.add_widget(button_easy)
-        # Добавляем кнопку для среднего уровня
-        button_medium = Button(text="Medium", font_size="30", font_name="CodecPro-ExtraBold.ttf",
-                               size_hint=(None, None), width=300, height=100,
-                               pos_hint={'center_x': .5, 'center_y': .5})
-        layout.add_widget(button_medium)
-        # Добавляем кнопку для сложного уровня
-        button_hard = Button(text="Hard", font_size="30", font_name="CodecPro-ExtraBold.ttf",
-                             size_hint=(None, None), width=300, height=100,
-                             pos_hint={'center_x': .5, 'center_y': .3})
-        layout.add_widget(button_hard)
-        # Добавляем Layout на главный экран
-        self.root.add_widget(layout)
-        # Удаляем кнопку Play и Quit с главного экрана
-        self.root.remove_widget(instance)
-        self.root.remove_widget(self.button_quit)
-
-
-if __name__ == '__main__':
-    MyApp().run()
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+        elif event.type == KEYDOWN:
+            if event.key == K_w:
+                menu.switch(-1)
+            elif event.key == K_s:
+                menu.switch(1)
+            elif event.key == K_SPACE:
+                menu.select()
+            
+    pygame.display.flip()
+    screen.blit(bg, (0, 0))
+    menu.draw(screen, 100, 100, 75)
+    pygame.display.update()
